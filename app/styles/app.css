@@ -1,0 +1,18 @@
+html, body {
+	padding: 20px;
+}
+.error-message {
+	color: red;
+	margin-left: 10px;
+}
+.contact-panel {
+	margin-top: 10px;
+}
+
+.create-contact-btn {
+	float: right;
+}
+
+.contact-buttons {
+	margin-top: 20px;
+}

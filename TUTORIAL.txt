@@ -1,0 +1,673 @@
+Install Ember CLI
+
+	1. Install Node/NPM
+		a. If you are installing on OSX I highly recommend not using the .pkg installer to prevent you from having to use sudo for installing packages. To install via the binaries:
+			i. 		Download the Binaries archive from http://nodejs.org/download/
+			ii. 	Extract the archive in your favorite directory (e.g. ~/programs)
+			iii.	Add the (install_dir)/lib/node_modules/npm/bin directory to your path in your ~/.profile script
+			iv.		Close and reopen any terminal windows or to pick up the config in a terminal that is already open execute:
+						source ~/.profile
+
+	2. Install Bower
+		npm install -g bower
+
+	3. Install PhantomJS
+		npm install -g phantomjs
+
+	4. Install Ember CLI
+		npm install -g ember-cli
+
+
+Create the demo-traditional app
+
+	ember new demo-traditional
+
+	1. Give an overview of the folder structure including environment.js, app.js, & router.js
+	2. Show the generator help
+		ember g --help
+	3. Generate a new contact model
+	4. Generate a new contacts route
+	5. Generate a new nested contacts/contact route
+	6. Show the router.js file and modify the contact route with id
+	7. Add console logging to the contacts and contact template
+	8. Implement a quick model function in the contact router to print the id to the console
+	9. Test the contacts and contact routes
+
+
+Create the new demo-pods app
+
+	ember new demo-pods
+
+	1. Add the podModulePrefix setting to environment.js
+    podModulePrefix: 'demo-pods/pods',
+
+  2. Generate our contact model in traditional non-pod configuration
+  	ember g model contact
+
+  3. Configure --pod to be the default in .ember-cli and explain that after configuring this the --pod switch inverts the effect 
+	  "usePods": true,
+
+	4. Generate the contacts route
+		ember g route contacts
+
+	5. Generate the contact (show) nested route
+		ember g route contacts/contact
+
+	6. Show the router.js file & talk about nested routes & deprecated resources.
+
+	7. Add the correct path for the contact route 
+
+	8. Show the directory structure for the pods and tests. Also, talk about nested with an 'index'.
+
+	Fill in the attributes for the contact model
+		firstName: DS.attr('string'),
+		middleInitial: DS.attr('string'),
+		lastName: DS.attr('string'),
+		streetAddress: DS.attr('string'),
+		city: DS.attr('string'),
+		state: DS.attr('string'),
+		postalCode: DS.attr('string')
+
+	9. Go over the use of fixtures vs http-mock & adapters
+
+	10. Generate new application adapter (outside of pod structure as it applies to all models)
+		ember g adapter application --pod
+
+	11. Modify the application adapter to extend ActiveModelAdapter and add a namespace compatible with the default for http-mock
+		export default DS.ActiveModelAdapter.extend({
+			namespace: 'api/v1'
+		});
+
+	12. In order to parse JSON in PUT & POST requests using http-mock we need to install the body parser npm package
+		npm install --save-dev body-parser
+
+	13. Generate an http-mock
+		ember g http-mock contacts
+
+	14. Review mock file at demo-pods/server/mocks/contacts.js:
+		add some mock data to the top of the file after the imports:
+		  var currId = 1;
+		  var contacts = [
+		    {
+		      id: 0,
+		      firstName: 'Joe',
+		      lastName: 'Jones',
+		      middleInitial: 'P',
+		      streetAddress: '123 Some Street',
+		      city: 'Seattle',
+		      state: 'Washington',
+		      postalCode: '12345'
+		    },
+		    {
+		      id: 1,
+		      firstName: 'Mary',
+		      lastName: 'Jones',
+		      streetAddress: '123 Some Street',
+		      city: 'Seattle',
+		      state: 'Washington',
+		      postalCode: '12345'
+		    }
+		  ];
+
+	  modify the 'get /' service function (contacts):
+		  contactsRouter.get('/', function(req, res) {
+		    res.send({'contacts': contacts});
+		  });
+
+		modify the 'post /' service function (create):
+		  contactsRouter.post('/', function(req, res) {
+		    var newContact = req.body.contact;
+		    newContact.id = currId = ++currId;
+		    contacts.push(newContact);
+		    res.status(201).send({
+		      'contact': newContact
+		    });
+		  });
+
+		modify the 'get /:id' service function (contact):
+		  contactsRouter.get('/:id', function(req, res) {
+		    res.send({'contact': getContactById(parseInt(req.params.id))});
+		  });
+
+		modify the 'put /:id' service function (update)
+		  contactsRouter.put('/:id', function(req, res) {
+		    var contact = req.body.contact;
+		    contact.id = parseInt(req.params.id);
+		    var idx = getContactIndexById(contact.id);
+		    contacts[idx] = contact;
+		    res.status(200).send({
+		      'contact': contacts[idx]
+		    });
+		  });
+
+		modify the 'delete /:id' service function (destroy)
+		  contactsRouter.delete('/:id', function(req, res) {
+		    contacts.splice(getContactIndexById(parseInt(req.params.id)), 1);
+		    res.status(204).end();
+		  });
+
+		add the following two functions after the 'delete /:id' function
+		  function getContactById(id) {
+		    return contacts[getContactIndexById(id)]
+		  }
+
+		  function getContactIndexById(id) {
+		    for (var i = 0; i < contacts.length; i++) {
+		      if (contacts[i].id === id) {
+		        return i;
+		      }
+		    }
+		  }
+
+		and finally replace the 'app.use' function call with (use body parser)
+		  app.use('/api/v1/contacts', require('body-parser').json(), contactsRouter);
+
+
+		Take some time and review the mock
+
+
+	15. Add the model hook to the contacts route so that it returns all contacts
+		model: function() {
+			return this.store.find('contact');
+		}
+
+	16. Add the model hook to the contact route so that it returns the specified contact
+		model: function(params) {
+			return this.store.find('contact', params.contact_id);
+		}
+
+	17. Implement a basic contacts template
+		<ul>
+		{{#each model as |contact|}}
+			<li>{{contact.firstName}}</li>
+		{{/each}}
+		</ul>
+		{{outlet}}
+
+	18. Implement a basic contact template
+		{{firstName}}	
+
+	19. Demonstrate both the contacts list and the contact by url and start the test page
+
+	20. Modify application.hbs to improve the title and demonstrate the live reload
+		<h2 id="title">Welcome to Contacts</h2>
+
+	21. Take a minute to pointout the Ember Ember Inspector Chrome extension
+
+
+	Start Part 3
+
+	22. Modify the contacts list so that it uses a link and demonstrate
+		<li>{{#link-to 'contacts.contact' contact}}{{contact.firstName}}{{/link-to}}</li>
+
+	23. Create a fullName computed property in the contact model 
+		fullName: function() {
+			var fn = this.get('firstName');
+			var ln = this.get('lastName');
+			var mi = this.get('middleInitial');
+			mi = mi && mi !== null ? mi + ' ' : '';
+			return '%@ %@%@'.fmt(fn, mi, ln);
+		}.property('firstName', 'middleInitial', 'lastName'),
+
+	24. Install bootstrap via bower
+		bower install bootstrap --save
+
+	25. Add bower import to the Brocfile and explain importing assets & concat/minify vs addons
+		app.import('bower_components/bootstrap/dist/css/bootstrap.css');
+		app.import('bower_components/bootstrap/dist/css/bootstrap.css.map', { destDir: 'assets' });
+		app.import('bower_components/bootstrap/dist/css/bootstrap-theme.css');
+		app.import('bower_components/bootstrap/dist/css/bootstrap-theme.css.map', { destDir: 'assets' });
+
+		app.import('bower_components/bootstrap/dist/js/bootstrap.js');
+
+	26. Add some general styling in app.css
+		html, body {
+			padding: 20px;
+		}
+		.contact-panel {
+			margin-top: 10px;
+		}
+
+		.create-contact-btn {
+			float: right;
+		}
+
+		.contact-buttons {
+			margin-top: 20px;
+		}
+
+	27. Now go back and make the contact template a little nicer & demo 
+		<div class="panel panel-default">
+		  <div class="panel-heading">Contact: {{model.fullName}}</div>
+		  <div class="panel-body">
+		  	<div>
+		  		{{model.fullName}}
+		  	</div>
+		  	<div>
+		  		{{model.streetAddress}}
+		  	</div>
+		  	<div>
+		  		{{model.city}}, {{model.state}}&nbsp;&nbsp;{{model.postalCode}}
+		  	</div>
+		  </div>
+		</div>
+
+	28. Add a fullAddress computed property to the contact model
+		fullAddress: function() {
+			var s = this.get('streetAddress');
+			var c = this.get('city');
+			var st = this.get('state');
+			var pc = this.get('postalCode');
+			return '%@ %@ %@  %@'.fmt(s ? s + ', ' : '', c ? c + ', ' : '', st ? st : '', pc ? pc : '');
+		}.property('streetAddress', 'city', 'state', 'postalCode')
+
+	29. Add a bootstrap styled table to the contacts template and demonstrate
+		<div class="row">
+			<div class="col-md-6 col-sm-12">
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>Full Name</th>
+							<th>Address</th>
+						</tr>
+					</thead>
+					<tbody>
+					{{#each model as |contact|}}
+						<tr>
+						  <td>{{#link-to 'contacts.contact' contact}}{{contact.fullName}}{{/link-to}}</td>
+						  <td>{{contact.fullAddress}}</td>
+					  </tr>
+					{{/each}}
+					</tbody>
+				</table>
+			</div>
+			<div class="col-md-6 col-sm-12 contact-panel">
+				{{outlet}}
+			</div>
+		</div>
+
+	30. Prepare template for 2.0 with attrs object (Routeable Component)
+
+		a. Generate a controller for contacts and a controller for contacts/contact
+			ember g controller contacts
+			ember g controller contacts/contact
+
+		b. Add an 'attrs' attribute to each of the new controllers
+			attrs: {}
+
+		c. Add the following lifecycle hook to the contacts route after the model hook
+			setupController: function(controller, model) {
+				controller.set('attrs.model', model);
+			}
+
+		d. Modify the contacts template to use 'attrs' instead of 'model'
+			{{#each attrs.model as |contact|}}
+
+		e. Add the same lifecycle hook to the contact router 
+			setupController: function(controller, model) {
+				controller.set('attrs.model', model);
+			}
+
+		f. Finally modify the contact template to use the attrs object
+			replace model. with attrs.model.
+
+	31. Create the create contact route & temporary (Ember 1.X) controller for attrs
+		ember g route contacts/create
+		ember g controller contacts/create
+
+		a. Add the attrs object to the controller
+			attrs: {}
+
+		b. Add the model and setupController hooks to the new route
+			model: function() {
+				return {};
+			},
+			setupController: function(controller, model) {
+				controller.set('attrs.model', model);
+			}
+
+		c. Add a form to the template
+			<form>
+			  <div class="form-group">
+			    <label for="firstName">First Name</label>
+			    {{input type='text' class='form-control' id='firstName' placeholder='Enter First Name' value=attrs.model.firstName}}
+			  </div>
+			  <div class="form-group">
+			    <label for="middleInitial">Middle Initial</label>
+			    {{input type='text' class='form-control' id='middleInitial' placeholder='Enter Middle Initial' value=attrs.model.middleInitial}}
+			  </div>
+			  <div class="form-group">
+			    <label for="lastName">Last Name</label>
+			    {{input type='text' class='form-control' id='lastName' placeholder='Enter Last Name' value=attrs.model.lastName}}
+			  </div>
+			  <div class="form-group">
+			    <label for="streetAddress">Street Address</label>
+			    {{input type='text' class='form-control' id='streetAddress' placeholder='Enter Street Address' value=attrs.model.streetAddress}}
+			  </div>
+			  <div class="form-group">
+			    <label for="city">City</label>
+			    {{input type='text' class='form-control' id='city' placeholder='Enter City' value=attrs.model.city}}
+			  </div>
+			  <div class="form-group">
+			    <label for="state">State</label>
+			    {{input type='text' class='form-control' id='state' placeholder='Enter State' value=attrs.model.state}}
+			  </div>
+			  <div class="form-group">
+			    <label for="postalCode">Postal Code</label>
+			    {{input type='text' class='form-control' id='postalCode' placeholder='Enter Postal Code' value=attrs.model.postalCode}}
+			  </div>
+			  <button type="submit" {{action 'createContact' attrs.model}} class="btn btn-primary">Submit</button>
+				{{link-to 'Cancel' 'contacts' class="btn btn-cancel"}}
+			</form>
+
+		d. Add a button to create a new contact below the table in the contacts template
+			{{link-to 'Create Contact' 'contacts.create' class="btn btn-primary create-contact-btn"}}
+
+		e. Test the create page and notice that submit doesn't work, show the error in the console
+
+		f. Add an action to the create router
+			actions: {
+				createContact: function(contact) {
+					var pContact = this.store.createRecord('contact', contact);
+					pContact.save();
+					this.transitionTo('contacts');
+				}
+			}
+
+	32. Add a button to the contact template to allow users to delete a contact and a button to cancel and return to the contacts list
+    <div class="contact-buttons">
+      <button type="submit" {{action 'deleteContact' attrs.model}} class="btn btn-danger">Delete</button>
+      {{link-to 'Cancel' 'contacts' class="btn btn-default"}}
+    </div>
+
+	33. Demonstrate that the button doesn't work without a handler then add the actions hash and handler to the contact route and demonstrate
+		actions: {
+			deleteContact: function(contact) {
+				contact.destroyRecord();
+				this.transitionTo('contacts');
+			}
+		}
+
+	34. Create an edit contact route
+		ember g route contacts/edit
+		ember g controller contacts/edit
+
+		a. Modify the route path in router.js
+	    this.route('edit', {path: ':contact_id/edit'});
+
+		b. Add a button to the contact template above the delete button to link to our new route
+      {{link-to 'Edit' 'contacts.edit' attrs.model class='btn btn-primary'}}
+
+    c. Implement the edit controller (attrs) and router (model and setupController)
+
+    d. Copy the template for contact to the edit template and change the action from createContact to updateContact
+
+    e. Modify the cancel link-to to return to our contact route for this contact
+			{{link-to 'Cancel' 'contacts.contact' attrs.model class="btn btn-cancel"}}
+
+    f. Implement the updateContact action in the edit router actions hash
+			actions: {
+				updateContact: function(contact) {
+					contact.save();
+					this.transitionTo('contacts.contact', contact.get('id'));
+				}
+			}
+
+	35. Make the create/edit contact form reusable as a component with a block parameter and yield
+		ember g component contact-form 
+
+		a. Copy the contents of either the create or edit template to the new component template and replace the save/update button and cancel link with:
+			{{yield attrs.model}}
+
+		b. Modify the create contact template so that it looks like:
+			{{#contact-form attrs=attrs as |contact|}}
+			  <button type="submit" {{action 'createContact' contact}} class="btn btn-primary">Submit</button>
+			  {{link-to 'Cancel' 'contacts' class="btn btn-cancel"}}
+			{{/contact-form}}
+
+		c. Point out the effect of the contact block param with yield
+
+		d. Modify the edit contact template so that it looks like:
+			{{#contact-form attrs=attrs as |contact|}}
+			  <button type="submit" {{action 'updateContact' contact}} class="btn btn-primary">Submit</button>
+				{{link-to 'Cancel' 'contacts.contact' contact class="btn btn-cancel"}}
+			{{/contact-form}}
+
+		e. While it is not necessary add the following to the new component js file
+			export default Ember.Component.extend({
+				attrs: undefined
+			});
+
+	Part 4
+		- Fix bug
+		- clean up unused folders
+		- Fix deprecation warning about podModulePrefix
+		- Add form validation
+		- Create a helper
+		- Upgrade to Ember CLI 0.2.2 & Ember 1.11
+
+	36. After using our application an ugly bug rears it's head related to the way models behave when a bound attribute changes but is not saved before leaving the create or update contacts forms. The best way to solve this problem without having to constantly reload the contacts from the backend is as follows.
+
+		a. Rollback model changes every time there is a transition in the application. To do this add the following action hook to the contacts route. This hook gets called every time we transition to the contacts route or any of it's nested routes. Put in some console logging to demonstrate that it's hit on every route change.
+			actions: {
+				didTransition: function() {
+					this.get('controller.attrs.model').forEach(function(model) {
+						model.rollback();
+					});
+				}
+			}
+
+	37. Our initial http-mock was basic and didn't implement all of the services correctly. Replace the entire contents with the contents below.
+		module.exports = function(app) {
+		  var express = require('express');
+		  var contactsRouter = express.Router();
+
+		  var currId = 1;
+		  var contacts = [
+		    {
+		      id: 0,
+		      firstName: 'Joe',
+		      lastName: 'Jones',
+		      middleInitial: 'P',
+		      streetAddress: '123 Some Street',
+		      city: 'Seattle',
+		      state: 'Washington',
+		      postalCode: '12345'
+		    },
+		    {
+		      id: 1,
+		      firstName: 'Mary',
+		      lastName: 'Jones',
+		      streetAddress: '123 Some Street',
+		      city: 'Seattle',
+		      state: 'Washington',
+		      postalCode: '12345'
+		    }
+		  ];
+
+		  contactsRouter.get('/', function(req, res) {
+		    res.send({'contacts': contacts});
+		  });
+
+		  contactsRouter.post('/', function(req, res) {
+		    var newContact = req.body.contact;
+		    newContact.id = currId = ++currId;
+		    contacts.push(newContact);
+		    res.status(201).send({
+		      'contact': newContact 
+		    });
+		  });
+
+		  contactsRouter.get('/:id', function(req, res) {
+		    res.send({'contact': getContactById(parseInt(req.params.id))});
+		  });
+
+		  contactsRouter.put('/:id', function(req, res) {
+		    var contact = req.body.contact;
+		    contact.id = parseInt(req.params.id);
+		    var idx = getContactIndexById(contact.id);
+		    contacts[idx] = contact;
+		    res.status(200).send({
+		      'contact': contacts[idx]
+		    });
+		  });
+
+		  contactsRouter.delete('/:id', function(req, res) {
+		    contacts.splice(getContactIndexById(parseInt(req.params.id)), 1);
+		    res.status(204).end();
+		  });
+
+		  function getContactById(id) {
+		    return contacts[getContactIndexById(id)]
+		  }
+
+		  function getContactIndexById(id) {
+		    for (var i = 0; i < contacts.length; i++) {
+		      if (contacts[i].id === id) {
+		        return i;
+		      }
+		    }
+		  }
+
+		  app.use('/api/v1/contacts', require('body-parser').json(), contactsRouter);
+		};
+
+	38. Clean up unused folders 
+		cd demo-pods/app
+		rm -r components
+		rm -r controllers
+		rm -r routes
+		rm -r views
+		rm -r templates/components
+
+	39. Point out the deprecation warning in the console and fix it
+
+	40. Add form validation
+		a. Install the ember-validations npm package (https://www.npmjs.com/package/ember-validations). There are several validation libraries to choose but this one is popular, well tested and supports validation in any Ember.Object making it more compatible with 2.0.
+			npm install --save-dev ember-validations
+
+		Recap: Persistence code in routes, view code in controllers (deprecated) or components (thumbs-up)
+
+		b. Add an action in our contact-form component to handle saving a contact so that we can call validation before forwarding on to the route to persist the changes
+		  actions: {
+		    saveContact: function(contact) {
+		      this.sendAction('action', contact);
+		    }
+		  }
+
+		c. Move our "Submit" button from the edit contact template to the contact-form component template just above the {{yield}}. This allows us to handle the action in the component instead of the controller. Modify the action name to be 'saveContact' and the attribute passed to saveContact to our attrs.model in the context of the component as shown below.
+		  <button type="submit" {{action 'saveContact' attrs.model}} class="btn btn-primary">Submit</button>
+
+		d. Remove the submit button from the create contact template
+
+		e. Add an action attribute to our component declaration in the edit contact template so that our component can send an action to the router after validation succeeds
+			{{#contact-form action='updateContact' attrs=attrs as |contact|}}
+
+		f. Do the same for the create action but notice how we can still have different action handler names in the router
+			{{#contact-form action='createContact' attrs=attrs as |contact|}}
+
+		g. Validate that the application works with the intermediate component action
+
+		h. Add our first validation in the component object explain the computed property and verify that it still works
+		  contact: Ember.computed.alias('attrs.model'),
+		  validations: {
+		    'contact.firstName': {
+		      presence: true,
+		      length: {
+		        minimum: 1
+		      }
+		    }
+		  }
+
+		i. Next we need to add a mixin to our component for the validation, make sure to import the ember-validations module
+			import EmberValidations from 'ember-validations';
+			EmberValidations.Mixin
+
+		i. Modify the components saveAction function so that it checks for validation and verify that it fails to submit but doesn't tell us why
+	    saveContact: function(contact) {
+	    	console.log('Is valid? ' + this.get('isValid'));
+	    	if (this.get('isValid') === true) {
+		      this.sendAction('action', contact);
+	    	}
+	    }
+
+	  j. Add an error message to our component template after the first name label
+			<span class="error-message">{{errors.contact.firstName}}</span>
+
+		k. Add a style to app.css to format our error message and demonstrate that our error message shows up when the field is not valid but demonstrate the issue this introduces with the create contact page
+			.error-message {
+				color: red;
+				margin-left: 10px;
+			}
+
+	  l. Add a a showErrors property and an else condition that sets the new property on the component that we can use to indicate that we want to show error messages
+	  	showErrors: false,
+	  	...
+	    saveContact: function(contact) {
+	    	if (this.get('isValid') === true) {
+		      this.sendAction('action', contact);
+	    	} else {
+	    		this.set('showErrors', true);
+	    	}
+	    }
+
+	  m. Point out that Ember 1.11 which is part of Ember CLI 0.2.2 includes the improvement to the bind attribute syntax allowing us to embed handlebars inside of html element attributes.
+
+	  n. Upgrade to Ember CLI 0.2.2
+
+	  o. Now modify our error message in the template so that it uses our new property to show/hide the message and demonstrate that the message doesn't show up until we hit submit the first time. First try the 2.0 syntax and show the error message.
+		   <span {{bind-attr class='showErrors::hide :error-message'}}>{{errors.contact.firstName}}</span>
+
+		p. Refactor to the error message to use the new attribute binding syntax.
+
+		q. Do something cool with the submit button so that it will indicate that there was an error when we submitted. Begin by adding a computed property on the component.
+		  buttonText: function() {
+		  	if (this.get('isValid') === false && this.get('showErrors') === true) {
+		  		return 'Error(s)';
+		  	} else {
+		  		return 'Submit';
+		  	}
+		  }.property('showErrors', 'isValid'),
+
+		r. Now modify the submit button in the component so that it makes use of our new property and demonstrate
+		  <button type="submit" {{action 'saveContact' attrs.model}} class="btn btn-primary">{{buttonText}}</button>
+
+		s. Create a new helper to apply the DRY principle for validation messages.
+			i. ember g helper validation-msg
+			ii. Uncomment the hash parameter and implement with:
+			...
+			var result = '';
+			if (params) {
+				var hide = hash.showAttr !== undefined && hash.showAttr === false;
+				result = '<span class="%@ error-message">%@</span>';
+				result = Ember.String.htmlSafe(result.fmt(hide === true ? 'hide' : '', params.toString()));
+			}
+		  return result;
+		  ...
+
+		t. Modify the error message in the contact form component template to:
+			{{validation-msg errors.contact.firstName showAttr=showErrors}}
+
+		u. Add the remaining validations to the validations hash
+	    'contact.middleInitial': {
+	      length: {
+	        maximum: 1
+	      }
+	    },
+	    'contact.lastName': {
+	      presence: true,
+	      length: {
+	        minimum: 1
+	      }
+	    },
+	    'contact.postalCode': {
+	      format: {
+	        with: /^\d{5}(?:[-\s]\d{4})?$/,
+	        allowBlank: true,
+	        message: 'must be a valid US zip code'
+	      }
+	    }
+
+	  v. Add the validation-msg helper for middleInitial, lastName, and postalCode to the template and demonstrate
+
+	41. Show rest calls? Go over the lessons learned? Unit testing?

@@ -1,0 +1,19 @@
+<div class="panel panel-default">
+  <div class="panel-heading">Contact: {{attrs.model.fullName}}</div>
+  <div class="panel-body">
+    <div>
+      {{attrs.model.fullName}}
+    </div>
+    <div>
+      {{attrs.model.streetAddress}}
+    </div>
+    <div>
+      {{attrs.model.city}}, {{attrs.model.state}}&nbsp;&nbsp;{{attrs.model.postalCode}}
+    </div>
+    <div class="contact-buttons">
+      {{link-to 'Edit' 'contacts.edit' attrs.model class='btn btn-primary'}}
+      <button type="submit" {{action 'deleteContact' attrs.model}} class="btn btn-danger">Delete</button>
+      {{link-to 'Cancel' 'contacts' class="btn btn-default"}}
+    </div>
+  </div>
+</div>
