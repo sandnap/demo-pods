@@ -669,5 +669,3 @@ Create the new demo-pods app
 	    }
 
 	  v. Add the validation-msg helper for middleInitial, lastName, and postalCode to the template and demonstrate
-
-	41. Show rest calls? Go over the lessons learned? Unit testing?
